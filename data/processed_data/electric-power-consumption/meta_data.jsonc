@@ -25,10 +25,11 @@
     ],
     "epochs": 300,
     "batch_size": 64,
-    "learning_rate": 0.001,
+    "learning_rate": 0.0005,
     "optimizer": "Adam",
     "loss": "MSE",
-    "window_size": 64,
+    "window_size": 48,
     "num_layers": 6,
     "hidden_size": 64,
+    "dropout": 0.5,
 }

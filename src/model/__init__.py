@@ -1,5 +1,7 @@
-from .RNN import RNNnet as RNN
+from .RNN import RNN, GRU, LSTM
 
 __all__ = [
-    'RNN' #RNN
-    ]
+    'RNN',  # RNN
+    "GRU",  # GRU
+    'LSTM'  # LSTM
+]

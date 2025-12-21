@@ -1,9 +1,9 @@
-from .model.RNN import RNNnet
 from tqdm import tqdm
 from torch import optim
 from torch import nn
 from .utils import build_sliding_window
 import torch
+import os
 
 
 def validate_model(model, val_data, val_labels, window_size, batch_size=16, loss_function='MSE'):
@@ -44,7 +44,8 @@ def validate_model(model, val_data, val_labels, window_size, batch_size=16, loss
 def train_model(model, train_data, train_labels, val_data, val_labels,
                 window_size, epochs, batch_size=16,
                 learning_rate=0.001, loss_function='MSE', optimizer_name='Adam',
-                early_stopping_patience=50):
+                early_stopping_patience=500,
+                dataset_name=None):  # ← 新增可选参数
     # ==================== 设备设置 ====================
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -70,6 +71,18 @@ def train_model(model, train_data, train_labels, val_data, val_labels,
 
     epoch_bar = tqdm(range(epochs), desc=f"Epoch 1/{epochs}", leave=True)
 
+    # ==================== 构造保存目录 ====================
+    model_name = model.__class__.__name__
+    if dataset_name:
+        save_dir = os.path.join('checkpoint', dataset_name)
+        save_path = os.path.join(save_dir, f'{model_name}_best.pth')
+    else:
+        # 兼容旧逻辑：不传 dataset_name 时仍保存到原位置
+        save_dir = 'checkpoint'
+        save_path = os.path.join(save_dir, f'{model_name}_best_model.pth')
+
+    os.makedirs(save_dir, exist_ok=True)  # 确保目录存在
+
     for epoch in epoch_bar:
         epoch_bar.set_description(f"Epoch {epoch+1}/{epochs}")
 
@@ -85,7 +98,7 @@ def train_model(model, train_data, train_labels, val_data, val_labels,
             optimizer.zero_grad()
 
             outputs = model(batch_inputs)
-            pred = outputs[0]  # 关键：只取 tuple 的第一个元素作为预测输出
+            pred = outputs[0]  # 只取 tuple 的第一个元素作为预测输出
 
             loss = criterion(pred, batch_labels)
             loss.backward()
@@ -105,8 +118,7 @@ def train_model(model, train_data, train_labels, val_data, val_labels,
         # ==================== 早停与保存最佳模型 ====================
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(),
-                       f'checkpoint/{model.__class__.__name__}_best_model.pth')
+            torch.save(model.state_dict(), save_path)  # ← 使用新路径保存
             early_stopping_counter = 0
             # print(f"  → New best model saved! Val Loss: {val_loss:.2f}")
         else:
@@ -124,4 +136,5 @@ def train_model(model, train_data, train_labels, val_data, val_labels,
             'Best': f'{best_val_loss:.2f}'
         })
 
+    print(f"Best model saved to: {save_path}")
     return model, history_train, history_val

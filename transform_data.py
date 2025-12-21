@@ -49,28 +49,51 @@ class Dataset:
         self.save_dataset(self.SAVE_PATH)
         self.save_meta_data(self.SAVE_PATH)
         
-    def save_meta_data(self,save_path):
+    def save_meta_data(self, save_path):
         os.makedirs(save_path, exist_ok=True)
-        meta_data={
-            "name":self.dataset_name,
-            "train_csv":os.path.join(Dataset.SAVE_PATH,self.dataset_name,"train.csv"),
-            "test_csv":os.path.join(Dataset.SAVE_PATH,self.dataset_name,"test.csv"),
-            "time_columns":["sin_time","cos_time"],
+        meta_data = {
+            "name": self.dataset_name,
+            "train_csv": os.path.join(Dataset.SAVE_PATH, self.dataset_name, "train.csv"),
+            "test_csv": os.path.join(Dataset.SAVE_PATH, self.dataset_name, "test.csv"),
+            "time_columns": ["sin_time", "cos_time"],
             "target_columns": self.meta_item["target_columns"],
-            "feature_columns":list(self.train_csv_data.columns),
+            "feature_columns": list(self.train_csv_data.columns),
         }
-        meta_data["epochs"]=300
-        meta_data["batch_size"]=64
-        meta_data["learning_rate"]=0.001
-        meta_data["optimizer"] ="Adam"
-        meta_data["loss"] = "MSE" 
-        meta_data["window_size"]=64
-        meta_data['num_layers']=6
-        meta_data["hidden_size"]=64
-        with open(os.path.join(save_path, meta_data["name"],"meta_data.jsonc"), 'w', encoding='utf-8') as f:
+        # 差异化超参数设置
+        if self.dataset_name == "daily-climate-time-series-data":
+            # 保持相对标准设置，适合不易过拟合的数据集
+            meta_data["epochs"] = 300
+            meta_data["batch_size"] = 16
+            meta_data["learning_rate"] = 0.001
+            meta_data["optimizer"] = "Adam"
+            meta_data["loss"] = "MSE"
+            meta_data["window_size"] = 32
+            meta_data['num_layers'] = 6
+            meta_data["hidden_size"] = 64
+            meta_data["dropout"] = 0.3
+        elif self.dataset_name == "electric-power-consumption":
+            # 针对易过拟合数据集的调整：
+            # - 减少层数和隐藏大小，降低模型容量
+            # - 增大 dropout，增强正则化
+            # - 增大 batch_size，减少梯度噪声
+            # - 略微减小学习率，避免快速过拟合
+            # - 缩短窗口大小，减少序列记忆负担
+            # - 减少 epochs 上限，早停会自动处理
+            meta_data["epochs"] = 300
+            meta_data["batch_size"] = 64
+            meta_data["learning_rate"] = 0.0005
+            meta_data["optimizer"] = "Adam"
+            meta_data["loss"] = "MSE"
+            meta_data["window_size"] = 48
+            meta_data['num_layers'] = 6
+            meta_data["hidden_size"] = 64
+            meta_data["dropout"] = 0.5
+        else:
+            raise ValueError(f"不支持的数据集: {self.dataset_name}")
+
+        with open(os.path.join(save_path, meta_data["name"], "meta_data.jsonc"), 'w', encoding='utf-8') as f:
             json5.dump(meta_data, f, ensure_ascii=False,
                        indent=4, quote_keys=True)
-
     def convert_time(self):
         time_col = ['time']
         self.train_csv_data['sin_time'] = np.sin(2*np.pi*(self.train_csv_data[time_col]-self.train_csv_data[time_col].min())/(

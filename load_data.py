@@ -21,6 +21,7 @@ class MyDataset():
         self.window_size=self.meta_data["window_size"]
         self.train_label=self.train_data[self.meta_data["target_columns"]]
         self.test_label=self.test_data[self.meta_data["target_columns"]]
+        self.dropout=self.meta_data["dropout"]
 
         
 
