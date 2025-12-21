@@ -3,7 +3,7 @@ import pandas as pd
 
 import os
 class MyDataset():
-    PROCESSED_PATH="./data/processed_data"
+    PROCESSED_PATH= "../../data/processed_data"
     def __init__(self,dataset_name):
         super().__init__()
         self.meta_data=json5.load(open(os.path.join(MyDataset.PROCESSED_PATH,dataset_name,"meta_data.jsonc")))

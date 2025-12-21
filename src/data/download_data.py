@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 # 定义基础数据目录
-BASIC_PATH = "./data/kaggle_data"
+BASIC_PATH = "../../data/kaggle_data"
 
 
 def get_kagglehub_dataset(handle: str, base_dir: str):

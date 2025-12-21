@@ -16,8 +16,8 @@ def standardize_data(data, mean=None, std=None):
 
 class Dataset:
     JSON_FILES = "./data/kaggle_data/meta_data.jsonc"
-    BASIC_PATH = "./data/kaggle_data"
-    SAVE_PATH = "./data/processed_data"
+    BASIC_PATH = "../../data/kaggle_data"
+    SAVE_PATH = "../../data/processed_data"
 
     def _load_meta_data():
         with open(Dataset.JSON_FILES, 'r', encoding='utf-8') as f:

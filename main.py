@@ -1,6 +1,6 @@
 from src.train_model import train_model
 from src.model import *
-from load_data import MyDataset
+from src.data.load_data import MyDataset
 from src.utils import plot_training_history
 
 DATASET_NAME = [
