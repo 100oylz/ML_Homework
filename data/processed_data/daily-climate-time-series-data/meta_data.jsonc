@@ -1,0 +1,31 @@
+{
+    "name": "daily-climate-time-series-data",
+    "train_csv": "./data/processed_data\\daily-climate-time-series-data\\train.csv",
+    "test_csv": "./data/processed_data\\daily-climate-time-series-data\\test.csv",
+    "time_columns": [
+        "sin_time",
+        "cos_time",
+    ],
+    "target_columns": [
+        "meantemp",
+        "humidity",
+        "wind_speed",
+        "meanpressure",
+    ],
+    "feature_columns": [
+        "meantemp",
+        "humidity",
+        "wind_speed",
+        "meanpressure",
+        "sin_time",
+        "cos_time",
+    ],
+    "epochs": 300,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "optimizer": "Adam",
+    "loss": "MSE",
+    "window_size": 64,
+    "num_layers": 6,
+    "hidden_size": 64,
+}
