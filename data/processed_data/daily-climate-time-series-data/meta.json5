@@ -1,0 +1,12 @@
+{
+    dataset_name: "daily-climate-time-series-data",
+    train_csv: "./data/processed_data\\daily-climate-time-series-data\\train.csv",
+    test_csv: "./data/processed_data\\daily-climate-time-series-data\\test.csv",
+    scaler: "./data/processed_data\\daily-climate-time-series-data\\scaler.joblib",
+    target_columns: [
+        "meantemp_sum",
+        "humidity_sum",
+        "wind_speed_sum",
+        "meanpressure_sum",
+    ],
+}

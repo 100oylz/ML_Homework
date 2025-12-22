@@ -1,0 +1,11 @@
+{
+    dataset_name: "electric-power-consumption",
+    train_csv: "./data/processed_data\\electric-power-consumption\\train.csv",
+    test_csv: "./data/processed_data\\electric-power-consumption\\test.csv",
+    scaler: "./data/processed_data\\electric-power-consumption\\scaler.joblib",
+    target_columns: [
+        "PowerConsumption_Zone1_sum",
+        "PowerConsumption_Zone2_sum",
+        "PowerConsumption_Zone3_sum",
+    ],
+}

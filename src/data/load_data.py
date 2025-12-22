@@ -6,7 +6,7 @@ class MyDataset():
     PROCESSED_PATH= "../../data/processed_data"
     def __init__(self,dataset_name):
         super().__init__()
-        self.meta_data=json5.load(open(os.path.join(MyDataset.PROCESSED_PATH,dataset_name,"meta_data.jsonc")))
+        self.meta_data=json5.load(open(os.path.join(MyDataset.PROCESSED_PATH,dataset_name,"meta_data.json5")))
         self.dataset_name=dataset_name
         self.train_data=pd.read_csv(self.meta_data["train_csv"])
         self.test_data=pd.read_csv(self.meta_data["test_csv"])

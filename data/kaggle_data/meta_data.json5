@@ -1,0 +1,110 @@
+// 数据集基础元数据配置（仅包含文件路径和基本信息）
+[
+  {
+    name: "daily-climate-time-series-data",
+    train_csv: "./data/kaggle_data/daily-climate-time-series-data/DailyDelhiClimateTrain.csv",
+    test_csv: "./data/kaggle_data/daily-climate-time-series-data/DailyDelhiClimateTest.csv",
+    need_split: false, // 已提供独立测试集，无需自动拆分
+    split_ratio: null,
+    time_column: "date", // 时间戳列名
+    groupby: "day",
+    needweekday: false,
+    // 聚合配置：按时间分组后的数值计算方式
+    aggregation: {
+      // 使用均值聚合
+
+      // 使用总和聚合
+      meantemp: ["sum"],
+      humidity: ["sum"],
+      wind_speed: ["sum"],
+      meanpressure: ["sum"],
+
+      // 使用第一个值（假设在时间窗口内这些特征相对稳定）
+      Season_Autumn: ["first"],
+      Season_Spring: ["first"],
+      Season_Summer: ["first"],
+      Season_Winter: ["first"],
+    },
+    lag_features: [
+      "meantemp_sum",
+      "humidity_sum",
+      "wind_speed_sum",
+      "meanpressure_sum",
+    ],
+    lags: [1,2,3,4,5,6,7],
+    target_columns: [
+      "meantemp_sum",
+      "humidity_sum",
+      "wind_speed_sum",
+      "meanpressure_sum"
+    ],
+  },
+  {
+    name: "electric-power-consumption",
+    train_csv: "./data/kaggle_data/electric-power-consumption/powerconsumption.csv",
+    test_csv: null, // 无独立测试集，需要从训练集拆分
+    need_split: true,
+    split_ratio: 0.2, // 20% 作为验证/测试集
+    time_column: "Datetime",
+    groupby: "hour",
+    needweekday: true,
+    // 聚合配置：按时间分组后的数值计算方式
+    aggregation: {
+      // 气象特征：使用均值聚合
+      Temperature: ["mean"],
+      Humidity: ["mean"],
+      WindSpeed: ["mean"],
+      GeneralDiffuseFlows: ["mean"],
+      DiffuseFlows: ["mean"],
+
+      // 电力消耗：使用总和聚合（小时级数据，求总耗电量）
+      PowerConsumption_Zone1: ["sum"],
+      PowerConsumption_Zone2: ["sum"],
+      PowerConsumption_Zone3: ["sum"],
+
+      // 分类特征：使用第一个值（假设在时间窗口内这些特征相对稳定）
+      Weekday: ["first"],
+      IsWeekend: ["first"],
+      TimeOfDay_Afternoon: ["first"],
+      TimeOfDay_Evening: ["first"],
+      TimeOfDay_Morning: ["first"],
+      TimeOfDay_Night: ["first"],
+      Season_Autumn: ["first"],
+      Season_Spring: ["first"],
+      Season_Summer: ["first"],
+      Season_Winter: ["first"],
+    },
+    lag_features: [
+      "Temperature_mean",
+      "Humidity_mean",
+      "WindSpeed_mean",
+      "GeneralDiffuseFlows_mean",
+      "DiffuseFlows_mean",
+      "PowerConsumption_Zone1_sum",
+      "PowerConsumption_Zone2_sum",
+      "PowerConsumption_Zone3_sum",
+    ],
+    lags: [4, 8, 12, 24, 48],
+    target_columns: [
+      "PowerConsumption_Zone1_sum",
+      "PowerConsumption_Zone2_sum",
+      "PowerConsumption_Zone3_sum",
+    ],
+  },
+  {
+    name: "sales-forecasting",
+    train_csv: "./data/kaggle_data/sales-forecasting/train.csv",
+    test_csv: null,
+    need_split: true,
+    split_ratio: 0.2,
+    time_column: "Order Date",
+  },
+  {
+    name: "time-series-forecasting-with-yahoo-stock-price",
+    train_csv: "./data/kaggle_data/time-series-forecasting-with-yahoo-stock-price/yahoo_stock.csv",
+    test_csv: null,
+    need_split: true,
+    split_ratio: 0.2,
+    time_column: "Date", // 股票数据的日期列
+  },
+]

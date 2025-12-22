@@ -12,6 +12,8 @@ dependencies = [
     "kagglehub>=0.3.13",
     "transformers>=4.57.3",
     "json5>=0.12.1",
+    "pandas-stubs==2.3.3.251219",
+    "joblib>=1.5.2",
 ]
 [project.optional-dependencies]
 cpu = [
