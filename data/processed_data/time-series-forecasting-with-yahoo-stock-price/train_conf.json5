@@ -12,6 +12,7 @@
   num_layers: 4,                // RNN/LSTM/GRU 层数
   output_size: 2,               // 输出特征维度
   dropout: 0.3,                 // Dropout 概率
+  n_heads: 8,                   //Transformer multi-head数
 
   // ==================== 时序窗口参数 ====================
   window_size: 64,              // 输入序列长度

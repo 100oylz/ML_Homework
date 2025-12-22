@@ -1,6 +1,6 @@
-from src.train_model import train_model
-from src.model import *
 from src.data.load_data import MyDataset
+from src.model import *
+from src.train_model import train_model
 from src.utils import plot_training_history
 
 DATASET_NAME = [
@@ -12,7 +12,8 @@ DATASET_NAME = [
 MODEL_NAME = [
     "RNN",
     "LSTM",
-    "GRU"
+    "GRU",
+    "Transformer"
 ]
 
 
@@ -31,6 +32,11 @@ def test_train_model():
             elif (model_name == "GRU"):
                 model = GRU(input_size=dataset.train_conf.input_size, hidden_size=dataset.train_conf.hidden_size,
                             output_size=dataset.train_conf.output_size, num_layers=dataset.train_conf.num_layers, dropout=dataset.train_conf.dropout)
+            elif (model_name == "Transformer"):
+                model = Transformer(input_size=dataset.train_conf.input_size,
+                                    hidden_size=dataset.train_conf.hidden_size,
+                                    output_size=dataset.train_conf.output_size,
+                                    num_layers=dataset.train_conf.num_layers, dropout=dataset.train_conf.dropout,num_heads=dataset.train_conf.n_heads)
             else:
                 raise ValueError("Invalid model name")
 
