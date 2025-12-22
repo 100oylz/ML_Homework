@@ -3,82 +3,58 @@ from torch import nn
 from torch.nn import functional as F
 import math
 
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=50000):
-        super().__init__()
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len).unsqueeze(1)
-
-        # 使用经典 sin / cos 编码
-        div_term = torch.exp(
-            torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model)
-        )
-
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-
-        # shape: (1, max_len, d_model)
-        self.register_buffer('pe', pe.unsqueeze(0))
-
-    def forward(self, x):
-        """
-        x: (B, T, d_model)
-        """
-        return x + self.pe[:, :x.size(1)]
-
-
 class TimeSeriesTransformer(nn.Module):
     def __init__(
         self,
-        input_size,     # 每个时间点的特征维度 F
-        hidden_size,    # Transformer 内部维度 d_model
-        output_size,    # 输出维度
-        num_layers=2,
-        num_heads=4,
-        dropout=0.1
+        input_size,     # 原始时序每个时间点的特征维度 (F)
+        hidden_size,    # Transformer 内部的隐藏层维度 (d_model)
+        output_size,    # 最终预测结果的维度
+        num_layers=2,   # Encoder 层堆叠数量
+        num_heads=4,    # 多头注意力机制的头数
+        dropout=0.1     # 丢弃率
     ):
         super(TimeSeriesTransformer, self).__init__()
 
-        # 1️⃣ 输入投影：F → d_model
+        # 1️⃣ 输入投影层：将特征空间从 F 映射到 d_model 维度，作为 Transformer 的 Embedding
         self.input_proj = nn.Linear(input_size, hidden_size)
 
-        # 2️⃣ 位置编码
-        # self.pos_encoder = PositionalEncoding(hidden_size)
-
-        # 3️⃣ Transformer Encoder
+        # 2️⃣ Transformer Encoder：Encoder-only 架构核心
+        # 注意：此处未添加位置编码 (Positional Encoding)，侧重于捕捉特征间的上下文交互
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=hidden_size,
             nhead=num_heads,
             dropout=dropout,
-            batch_first=True  # 重要！输入用 (B, T, C)
+            batch_first=True  # 输入格式要求为 (Batch, Seq, Feature)
         )
         self.transformer_encoder = nn.TransformerEncoder(
             encoder_layer,
             num_layers=num_layers
         )
 
-        # 4️⃣ 输出层（预测头）
+        # 3️⃣ 输出层（预测头）：将编码后的隐藏状态映射到目标输出空间
         self.fc_out = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
         """
-        x: (B, T, F)
+        前向传播逻辑
+        输入 x 形状: (B, T, F) -> (Batch_size, Seq_len, Input_size)
         """
-        # 输入映射
-        x = self.input_proj(x)  # (B, T, hidden_size)
+        # Step 1: 线性映射，对齐 Transformer 内部维度
+        # 输出形状: (B, T, hidden_size)
+        x = self.input_proj(x)
 
-        # 加位置编码
-        # x = self.pos_encoder(x)
+        # Step 2: 进入 Transformer Encoder 进行全局上下文特征提取
+        # 输出形状: (B, T, hidden_size)
+        x = self.transformer_encoder(x)
 
-        # Transformer Encoder
-        x = self.transformer_encoder(x)  # (B, T, hidden_size)
+        # Step 3: 特征提取策略 —— Last-step (取序列最后一个时间步)
+        # 理由：在无位置编码的情况下，经过多层 Self-Attention，最后一个步长已聚合了全序列的历史摘要信息
+        # 输出形状: (B, hidden_size)
+        last_hidden = x[:, -1, :]
 
-        # 取最后一个时间步（预测未来）
-        last_hidden = x[:, -1, :]  # (B, hidden_size)
+        # Step 4: 映射至输出预测值
+        # 输出形状: (B, output_size)
+        out = self.fc_out(last_hidden)
 
-        # 输出预测
-        out = self.fc_out(last_hidden)  # (B, output_size)
-
-        # ⚠️ 为了兼容你现有训练代码，返回 tuple
+        # 为了兼容 RNN 等现有训练流程的代码接口，返回结果元组 (预测值, None)
         return out, None
