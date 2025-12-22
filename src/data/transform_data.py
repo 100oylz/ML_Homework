@@ -69,8 +69,8 @@ def remove_noused_columns(df):
         df.drop("Day", axis=1, inplace=True)
     if ("Hour" in df.columns):
         df.drop("Hour", axis=1, inplace=True)
-    if ("Weekday" in df.columns):
-        df.drop("Weekday", axis=1, inplace=True)
+    if ("Weekday_first" in df.columns):
+        df.drop("Weekday_first", axis=1, inplace=True)
 
 
 # ================================

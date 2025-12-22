@@ -4,19 +4,44 @@ from torch import nn
 from .utils import build_sliding_window
 import torch
 import os
+import json
+import numpy as np
 
 
-def validate_model(model, val_data, val_labels, window_size, batch_size=16, loss_function='MSE'):
-    """在验证集上评估模型，返回平均 loss"""
+# ======================== 指标计算工具 ========================
+def compute_metrics(y_true, y_pred, eps=1e-8):
+    """
+    计算常见时序回归指标
+    y_true, y_pred: numpy array
+    """
+    y_true = y_true.reshape(-1)
+    y_pred = y_pred.reshape(-1)
+
+    mse = np.mean((y_pred - y_true) ** 2)
+    rmse = np.sqrt(mse)
+    mae = np.mean(np.abs(y_pred - y_true))
+    mape = np.mean(np.abs((y_pred - y_true) / (y_true + eps))) * 100
+
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+    r2 = 1 - ss_res / (ss_tot + eps)
+
+    return {
+        "MSE": float(mse),
+        "RMSE": float(rmse),
+        "MAE": float(mae),
+        "MAPE": float(mape),
+        "R2": float(r2)
+    }
+
+
+# ======================== 验证函数（增强指标） ========================
+def validate_model(model, val_data, val_labels, window_size,
+                   batch_size=16, loss_function='MSE', collect_metrics=False):
     model.eval()
     device = next(model.parameters()).device
 
-    if loss_function == "MSE":
-        criterion = nn.MSELoss()
-    elif loss_function == "CrossEntropy":
-        criterion = nn.CrossEntropyLoss()
-    else:
-        raise ValueError("Invalid loss function specified")
+    criterion = nn.MSELoss() if loss_function == "MSE" else nn.CrossEntropyLoss()
 
     val_inputs, val_labels_tensor = build_sliding_window(
         val_data, val_labels, window_size)
@@ -26,39 +51,52 @@ def validate_model(model, val_data, val_labels, window_size, batch_size=16, loss
     total_loss = 0.0
     num_batches = 0
 
+    preds = []
+    gts = []
+
     with torch.no_grad():
         for i in range(0, len(val_inputs), batch_size):
             batch_inputs = val_inputs[i:i + batch_size]
             batch_labels = val_labels_tensor[i:i + batch_size]
 
             outputs = model(batch_inputs)
-            pred = outputs[0]  # 只取第一个输出（预测值），忽略 hidden 等
+            pred = outputs[0]
 
             loss = criterion(pred, batch_labels)
             total_loss += loss.item()
             num_batches += 1
 
-    return total_loss / num_batches
+            if collect_metrics:
+                preds.append(pred.detach().cpu().numpy())
+                gts.append(batch_labels.detach().cpu().numpy())
+
+    avg_loss = total_loss / num_batches
+
+    if collect_metrics:
+        preds = np.concatenate(preds, axis=0)
+        gts = np.concatenate(gts, axis=0)
+        metrics = compute_metrics(gts, preds)
+        return avg_loss, metrics
+
+    return avg_loss
 
 
+# ======================== 训练主函数 ========================
 def train_model(model, train_data, train_labels, val_data, val_labels,
                 window_size, epochs, batch_size=16,
                 learning_rate=0.001, loss_function='MSE', optimizer_name='Adam',
                 early_stopping_patience=500,
-                dataset_name=None):  # ← 新增可选参数
-    # ==================== 设备设置 ====================
+                dataset_name=None):
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-
     model = model.to(device)
 
-    # ==================== 优化器和损失函数 ====================
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate) if optimizer_name == "Adam" \
-        else optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate) \
+        if optimizer_name == "Adam" else optim.SGD(model.parameters(), lr=learning_rate)
 
     criterion = nn.MSELoss() if loss_function == "MSE" else nn.CrossEntropyLoss()
 
-    # ==================== 训练数据准备 ====================
     train_inputs, train_labels_tensor = build_sliding_window(
         train_data, train_labels, window_size)
     train_inputs = train_inputs.to(device)
@@ -66,27 +104,22 @@ def train_model(model, train_data, train_labels, val_data, val_labels,
 
     history_train = []
     history_val = []
+    history_metrics = []
+
     best_val_loss = float('inf')
     early_stopping_counter = 0
 
+    model_name = model.__class__.__name__
+    save_dir = os.path.join(
+        'checkpoint', dataset_name) if dataset_name else 'checkpoint'
+    os.makedirs(save_dir, exist_ok=True)
+
+    save_path = os.path.join(save_dir, f'{model_name}_best.pth')
+    metrics_path = os.path.join(save_dir, f'{model_name}_metrics.json')
+
     epoch_bar = tqdm(range(epochs), desc=f"Epoch 1/{epochs}", leave=True)
 
-    # ==================== 构造保存目录 ====================
-    model_name = model.__class__.__name__
-    if dataset_name:
-        save_dir = os.path.join('checkpoint', dataset_name)
-        save_path = os.path.join(save_dir, f'{model_name}_best.pth')
-    else:
-        # 兼容旧逻辑：不传 dataset_name 时仍保存到原位置
-        save_dir = 'checkpoint'
-        save_path = os.path.join(save_dir, f'{model_name}_best_model.pth')
-
-    os.makedirs(save_dir, exist_ok=True)  # 确保目录存在
-
     for epoch in epoch_bar:
-        epoch_bar.set_description(f"Epoch {epoch+1}/{epochs}")
-
-        # ==================== 训练阶段 ====================
         model.train()
         train_loss = 0.0
         num_batches = 0
@@ -96,9 +129,8 @@ def train_model(model, train_data, train_labels, val_data, val_labels,
             batch_labels = train_labels_tensor[i:i + batch_size]
 
             optimizer.zero_grad()
-
             outputs = model(batch_inputs)
-            pred = outputs[0]  # 只取 tuple 的第一个元素作为预测输出
+            pred = outputs[0]
 
             loss = criterion(pred, batch_labels)
             loss.backward()
@@ -110,31 +142,40 @@ def train_model(model, train_data, train_labels, val_data, val_labels,
         avg_train_loss = train_loss / num_batches
         history_train.append(avg_train_loss)
 
-        # ==================== 验证阶段 ====================
-        val_loss = validate_model(
-            model, val_data, val_labels, window_size, batch_size, loss_function)
-        history_val.append(val_loss)
+        val_loss, metrics = validate_model(
+            model, val_data, val_labels, window_size,
+            batch_size, loss_function, collect_metrics=True)
 
-        # ==================== 早停与保存最佳模型 ====================
+        history_val.append(val_loss)
+        history_metrics.append({
+            "epoch": epoch + 1,
+            "val_loss": val_loss,
+            **metrics
+        })
+
+        # 保存 metrics
+        with open(metrics_path, 'w', encoding='utf-8') as f:
+            json.dump(history_metrics, f, indent=4)
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), save_path)  # ← 使用新路径保存
+            torch.save(model.state_dict(), save_path)
             early_stopping_counter = 0
-            # print(f"  → New best model saved! Val Loss: {val_loss:.2f}")
         else:
             early_stopping_counter += 1
 
         if early_stopping_counter >= early_stopping_patience:
-            print(f"\nEarly stopping triggered at epoch {epoch+1}")
-            print(f"Best validation loss: {best_val_loss:.2f}")
+            print(f"\nEarly stopping at epoch {epoch+1}")
             break
 
-        # 更新进度条
         epoch_bar.set_postfix({
-            'Train': f'{avg_train_loss:.2f}',
-            'Val': f'{val_loss:.2f}',
-            'Best': f'{best_val_loss:.2f}'
+            "Train": f"{avg_train_loss:.4f}",
+            "Val": f"{val_loss:.4f}",
+            "RMSE": f"{metrics['RMSE']:.4f}",
+            "MAE": f"{metrics['MAE']:.4f}"
         })
 
     print(f"Best model saved to: {save_path}")
-    return model, history_train, history_val
+    print(f"Metrics saved to: {metrics_path}")
+
+    return model, history_train, history_val, history_metrics
