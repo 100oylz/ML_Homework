@@ -1,0 +1,10 @@
+{
+    dataset_name: "time-series-forecasting-with-yahoo-stock-price",
+    train_csv: "./data/processed_data\\time-series-forecasting-with-yahoo-stock-price\\train.csv",
+    test_csv: "./data/processed_data\\time-series-forecasting-with-yahoo-stock-price\\test.csv",
+    scaler: "./data/processed_data\\time-series-forecasting-with-yahoo-stock-price\\scaler.joblib",
+    target_columns: [
+        "Volume_sum",
+        "Adj Close_sum",
+    ],
+}

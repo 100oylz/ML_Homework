@@ -106,5 +106,40 @@
     need_split: true,
     split_ratio: 0.2,
     time_column: "Date", // 股票数据的日期列
+    groupby: "day",
+    needweekday: true,
+    // 聚合配置：按时间分组后的数值计算方式
+    aggregation: {
+      // 使用均值聚合
+
+      // 使用总和聚合
+      High: ["sum"],
+      Low: ["sum"],
+      Open: ["sum"],
+      Close: ["sum"],
+      Volume: ["sum"],
+      "Adj Close": ["sum"],
+
+      // 使用第一个值（假设在时间窗口内这些特征相对稳定）
+      Weekday: ["first"],
+      IsWeekend: ["first"],
+      Season_Autumn: ["first"],
+      Season_Spring: ["first"],
+      Season_Summer: ["first"],
+      Season_Winter: ["first"],
+    },
+    lag_features: [
+      "High_sum",
+      "Low_sum",
+      "Open_sum",
+      "Close_sum",
+      "Volume_sum",
+      "Adj Close_sum",
+    ],
+    lags: [1,2,3,4,5,6,7],
+    target_columns: [
+      "Volume_sum",
+      "Adj Close_sum",
+    ],
   },
 ]
