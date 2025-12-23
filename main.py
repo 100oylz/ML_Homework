@@ -2,7 +2,8 @@ from src.data.load_data import MyDataset
 from src.model import *
 from src.train_model import train_model
 from src.utils import plot_training_history
-
+from src.data_vis import process_metrics,plot_metrics
+import os
 DATASET_NAME = [
     "daily-climate-time-series-data",
     "electric-power-consumption",
@@ -53,6 +54,14 @@ def test_train_model():
             plot_training_history(train_history, val_history, save_path=None,
                                   dataset_name=dataset_name, model_name=model_name)
 
+def visualize():
+    for dataset_name in DATASET_NAME:
+        checkpoint_path=os.path.join("./checkpoint",dataset_name)
+        df_results = process_metrics(checkpoint_path)
+        plot_metrics(df_results,dataset_name)
+        plot_metrics(df_results,dataset_name,have_Transformer=False)
 
 if __name__ == "__main__":
-    test_train_model()
+    # test_train_model()
+    visualize()
+

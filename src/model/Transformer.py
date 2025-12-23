@@ -48,7 +48,6 @@ class TimeSeriesTransformer(nn.Module):
         x = self.transformer_encoder(x)
 
         # Step 3: 特征提取策略 —— Last-step (取序列最后一个时间步)
-        # 理由：在无位置编码的情况下，经过多层 Self-Attention，最后一个步长已聚合了全序列的历史摘要信息
         # 输出形状: (B, hidden_size)
         last_hidden = x[:, -1, :]
 
